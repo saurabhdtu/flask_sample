@@ -10,7 +10,7 @@ DEBUG = True
 SECRET_KEY = 'development key'
 MYSQL_DATABASE_USER = 'root'
 MYSQL_DATABASE_DB = 'test'
-MYSQL_DATABASE_PASSWORD = 'qwerty'
+MYSQL_DATABASE_PASSWORD = 'sauran_1993'
 app.config.from_object(__name__)
 mysql.init_app(app)
 connection = mysql.connect()
