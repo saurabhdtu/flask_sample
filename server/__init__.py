@@ -1,29 +1,32 @@
 import os
 import time
 
-from flask import url_for, redirect, request, render_template, make_response, abort, jsonify
+from flask import Flask, request
+from flask import make_response, jsonify
 
+from server.utils import utils
+from server.validators import validator
 from server.views import user
-from server.utils import file_utils
-from server.views.validators import validator
-from .database import app, cursor
+from server.database import init_mysql
+
+app = Flask(__name__)
+init_mysql(app)
+# app.config.from_object('config')
 
 app.register_blueprint(user.mod)
 
-@app.route('/', defaults={'name': 'Saurabh'})
-@app.route('/<name>')
-def hello_world(name):
-    return render_template('Hello.html', name=name)
+
 
 @app.route("/file", methods=['POST'])
 def register():
-    if validator.validateReg(request.form['username'], request.form['password']):
+    if validator.validate_reg(request.form['username'], request.form['password']):
         uploadedFile = request.files['file']
         print(uploadedFile.filename)
-        if validator.validateFile(uploadedFile.filename):
+        if validator.validate_file(uploadedFile.filename):
             APP_ROOT = os.path.dirname(os.path.abspath(__file__))
             UPLOAD_FOLDER = os.path.join(APP_ROOT, 'uploads/')
-            uploadedFile.save(UPLOAD_FOLDER + str(int(time.time())) + "." + file_utils.getFileExt(uploadedFile.filename))
+            uploadedFile.save(
+                UPLOAD_FOLDER + str(int(time.time())) + "." + utils.getFileExt(uploadedFile.filename))
             make_response()
             return "success"
         else:
@@ -31,36 +34,36 @@ def register():
     else:
         "error"
 
+
 @app.errorhandler(404)
-def pageNotFound(error):
+def page_not_found(error):
     return error_response(error)
 
 
 @app.errorhandler(401)
-def pageNotFound(error):
+def unauthorized(error):
     return error_response(error)
 
+
 @app.errorhandler(403)
-def pageNotFound(error):
+def forbidden(error):
     return error_response(error)
 
 
 @app.errorhandler(500)
-def pageNotFound(error):
+def internal_server_error(error):
+    app.logger.exception(error)
     return error_response(error)
+
 
 @app.errorhandler(400)
-def pageNotFound(error):
+def bad_request(error):
     return error_response(error)
 
 
-@app.route('/abort')
-def killed():
-    abort(401)
-
-@app.route('/redirect')
-def redir():
-    return redirect(url_for('killed'))
+@app.errorhandler(405)
+def wrong_method(error):
+    return jsonify({'status': 'error', 'message': 'Wrong HTTP method used'}), 405
 
 
 def error_response(error):

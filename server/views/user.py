@@ -1,7 +1,5 @@
-from flask import Blueprint, request, jsonify, render_template, abort
-
-from .validators.validator import validateReg
-from ..database import cursor, connection
+from flask import Blueprint, request, jsonify, abort
+from server.controllers import user_ctrl
 
 mod = Blueprint('user', __name__, url_prefix='/user')
 
@@ -12,22 +10,10 @@ def login():
                     'status': 200})
 
 
-
 @mod.route('/register', methods=['POST'])
 def register():
-    message = validateReg(request)
-    if message is None:
-        return processReg(request)
+    data = user_ctrl.create_user(request.form)
+    if data['status'] is not 200:
+        abort(data['status'], data['message'])
     else:
-        abort(400, message)
-
-
-def processReg(request):
-    cursor.execute("SELECT email from user")
-    cursor.execute("SELECT email from user WHERE email = %s", request.form['email'])
-    if cursor.rowcount > 0:
-        abort(403, 'User Already Exists')
-    else:
-        cursor.execute("insert into user (name, email, password) values (%s, %s, %s)", [request.form['name'], request.form['email'], request.form['password']])
-        connection.commit()
-        return jsonify({"status": 200, "message": "User Created Successfully"})
+        return jsonify(data['message'])
